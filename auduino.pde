@@ -21,6 +21,7 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "pitches.h"
 
 uint16_t syncPhaseAcc;
 uint16_t syncPhaseInc;
@@ -39,7 +40,8 @@ uint8_t  grain2Decay;
 #define GRAIN_DECAY_CONTROL  (2)
 #define GRAIN2_FREQ_CONTROL  (3)
 #define GRAIN2_DECAY_CONTROL (1)
-
+const int buttonPin = 2;     // the number of the pushbutton pin
+int scaleIndex = 0;
 
 
 #define PWM_PIN       3
@@ -57,6 +59,7 @@ uint16_t antilogTable[] = {
   45842,45348,44859,44376,43898,43425,42958,42495,42037,41584,41136,40693,40255,39821,39392,38968,
   38548,38133,37722,37316,36914,36516,36123,35734,35349,34968,34591,34219,33850,33486,33125,32768
 };
+
 uint16_t mapPhaseInc(uint16_t input) {
   return (antilogTable[input & 0x3f]) >> (input >> 6);
 }
@@ -79,15 +82,89 @@ uint16_t mapMidi(uint16_t input) {
 
 // Stepped Pentatonic mapping
 //
-uint16_t pentatonicTable[54] = {
+uint16_t pentatonicTable  [54] = {
   0,19,22,26,29,32,38,43,51,58,65,77,86,103,115,129,154,173,206,231,259,308,346,
   411,461,518,616,691,822,923,1036,1232,1383,1644,1845,2071,2463,2765,3288,
   3691,4143,4927,5530,6577,7382,8286,9854,11060,13153,14764,16572,19708,22121,26306
 };
 
+
+// C Maj Pentatonic (C, D, E, G, A, C)
+uint16_t cMajorPentatonic  [54] = {
+  NOTE_C1,NOTE_D1,NOTE_E1,NOTE_G1,NOTE_A1,
+  NOTE_C2,NOTE_D2,NOTE_E2,NOTE_G2,NOTE_A2,
+  NOTE_C3,NOTE_D3,NOTE_E3,NOTE_G3,NOTE_A3,
+  NOTE_C4,NOTE_D4,NOTE_E4,NOTE_G4,NOTE_A4,
+  NOTE_C5,NOTE_D5,NOTE_E5,NOTE_G5,NOTE_A5,
+  NOTE_C6,NOTE_D6,NOTE_E6,NOTE_G6,NOTE_A6,
+  NOTE_C7,NOTE_D7,NOTE_E7,NOTE_G7,NOTE_A7,
+  NOTE_C8,NOTE_D8
+};
+
+// C# / Db Maj Pentatonic (C#, D#, F, G#, A#, C#)
+uint16_t cSharpMajorPentatonic  [54] = {
+  NOTE_CS1,NOTE_DS1,NOTE_F1,NOTE_GS1,NOTE_AS1,
+  NOTE_CS2,NOTE_DS2,NOTE_F2,NOTE_GS2,NOTE_AS2,
+  NOTE_CS3,NOTE_DS3,NOTE_F3,NOTE_GS3,NOTE_AS3,
+  NOTE_CS4,NOTE_DS4,NOTE_F4,NOTE_GS4,NOTE_AS4,
+  NOTE_CS5,NOTE_DS5,NOTE_F5,NOTE_GS5,NOTE_AS5,
+  NOTE_CS6,NOTE_DS6,NOTE_F6,NOTE_GS6,NOTE_AS6,
+  NOTE_CS7,NOTE_DS7,NOTE_F7,NOTE_GS7,NOTE_AS7,
+  NOTE_CS8,NOTE_DS8
+};
+
+// D Maj Pentatonic (D, E, F#, A, B, D)
+uint16_t dMajorPentatonic  [54] = {
+  NOTE_D1,NOTE_E1,NOTE_FS1,NOTE_A1,NOTE_B1,
+  NOTE_D2,NOTE_E2,NOTE_FS2,NOTE_A2,NOTE_B2,
+  NOTE_D3,NOTE_E3,NOTE_FS3,NOTE_A3,NOTE_B3,
+  NOTE_D4,NOTE_E4,NOTE_FS4,NOTE_A4,NOTE_B4,
+  NOTE_D5,NOTE_E5,NOTE_FS5,NOTE_A5,NOTE_B5,
+  NOTE_D6,NOTE_E6,NOTE_FS6,NOTE_A6,NOTE_B6,
+  NOTE_D7,NOTE_E7,NOTE_FS7,NOTE_A7,NOTE_B7,
+  NOTE_D8
+};
+
+// D# / Eb Maj Pentatonic (D#, F, G, A#, C, D#)
+uint16_t dSharpMajorPentatonic  [54] = {
+  NOTE_DS1,NOTE_F1,NOTE_G1,NOTE_AS1,NOTE_C2,
+  NOTE_DS2,NOTE_F2,NOTE_G2,NOTE_AS2,NOTE_C3,
+  NOTE_DS3,NOTE_F3,NOTE_G3,NOTE_AS3,NOTE_C4,
+  NOTE_DS4,NOTE_F4,NOTE_G4,NOTE_AS4,NOTE_C5,
+  NOTE_DS5,NOTE_F5,NOTE_G5,NOTE_AS5,NOTE_C6,
+  NOTE_DS6,NOTE_F6,NOTE_G6,NOTE_AS6,NOTE_C7,
+  NOTE_DS7,NOTE_F7,NOTE_G7,NOTE_AS7,NOTE_C8,
+  NOTE_DS8
+};
+
+// E Maj Pentatonic (E, F#, G#, B, C#, E )
+uint16_t eMajorPentatonic  [54] = {
+  NOTE_E1,NOTE_FS1,NOTE_GS1,NOTE_B1,NOTE_CS2,
+  NOTE_E2,NOTE_FS2,NOTE_GS2,NOTE_B2,NOTE_CS3,
+  NOTE_E3,NOTE_FS3,NOTE_GS3,NOTE_B3,NOTE_CS4,
+  NOTE_E4,NOTE_FS4,NOTE_GS4,NOTE_B4,NOTE_CS5,
+  NOTE_E5,NOTE_FS5,NOTE_GS5,NOTE_B5,NOTE_CS6,
+  NOTE_E6,NOTE_FS6,NOTE_GS6,NOTE_B6,NOTE_CS7,
+  NOTE_E7,NOTE_FS7,NOTE_GS7,NOTE_B7,NOTE_CS8
+};
+
+// F Maj Pentatonic (F, G, A, C, D, F)
+uint16_t fMajorPentatonic  [54] = {
+  NOTE_F1,NOTE_G1,NOTE_A1,NOTE_C2,NOTE_D2,
+  NOTE_F2,NOTE_G2,NOTE_A2,NOTE_C3,NOTE_D3,
+  NOTE_F3,NOTE_G3,NOTE_A3,NOTE_C4,NOTE_D4,
+  NOTE_F4,NOTE_G4,NOTE_A4,NOTE_C5,NOTE_D5,
+  NOTE_F5,NOTE_G5,NOTE_A5,NOTE_C6,NOTE_D6,
+  NOTE_F6,NOTE_G6,NOTE_A6,NOTE_C7,NOTE_D7,
+  NOTE_F7,NOTE_G7,NOTE_A7,NOTE_C8,NOTE_D8
+};
+
+uint16_t* scales[] = {cMajorPentatonic, cSharpMajorPentatonic, dMajorPentatonic, dSharpMajorPentatonic, eMajorPentatonic, fMajorPentatonic };
+
+
 uint16_t mapPentatonic(uint16_t input) {
   uint8_t value = (1023-input) / (1024/53);
-  return (pentatonicTable[value]);
+  return (scales[scaleIndex][value]);
 }
 
 
@@ -100,18 +177,48 @@ void audioOn() {
 
 }
 
+int buttonState = 0;         // current state of the button
+int lastButtonState = 0;     // previous state of the button
+
 
 void setup() {
   pinMode(PWM_PIN,OUTPUT);
   audioOn();
   pinMode(LED_PIN,OUTPUT);
+  pinMode(buttonPin, INPUT);     
+
   Serial.begin(9600);   
   
 }
 
 void loop() {
 
-  syncPhaseInc = mapPentatonic(analogRead(SYNC_CONTROL));
+
+  buttonState = digitalRead(buttonPin);
+
+  // check if the pushbutton is pressed.
+  // if it is, the buttonState is HIGH:
+  // compare the buttonState to its previous state
+  if (buttonState != lastButtonState) {
+    // if the state has changed, increment the counter
+    if (buttonState == HIGH) {
+      // if the current state is HIGH then the button
+      // wend from off to on:
+      scaleIndex++;
+      if (scaleIndex > sizeof(scales)) {
+        scaleIndex = 0;
+      }
+    }
+
+  }
+  // save the current state as the last state, 
+  //for next time through the loop
+  lastButtonState = buttonState;
+
+  Serial.println(scaleIndex);
+
+
+  syncPhaseInc   = mapPentatonic(analogRead(SYNC_CONTROL));
   // syncPhaseInc = mapMidi(analogRead(SYNC_CONTROL));
 
   grainPhaseInc  = mapPhaseInc(analogRead(GRAIN_FREQ_CONTROL)) / 2;
